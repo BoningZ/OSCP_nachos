@@ -29,6 +29,7 @@ OpenFile::OpenFile(int sector)
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     seekPosition = 0;
+    this->sector=sector;
 }
 
 //----------------------------------------------------------------------
@@ -193,4 +194,9 @@ int
 OpenFile::Length() 
 { 
     return hdr->FileLength(); 
+}
+
+void
+OpenFile::WriteBack(){
+    hdr->WriteBack(sector);
 }

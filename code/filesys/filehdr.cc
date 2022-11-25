@@ -30,6 +30,9 @@
 #include "time.h"
 
 
+FileHeader::FileHeader(){
+     memset(dataSectors, 0, sizeof(dataSectors));
+}
 
 
 bool

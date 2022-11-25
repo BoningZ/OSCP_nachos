@@ -37,12 +37,8 @@
 
 class FileHeader {
   public:
-    FileHeader(){
-      memset(dataSectors, 0, sizeof(dataSectors));
-    }
-    ~FileHeader(){
-      
-    }
+    FileHeader();
+    ~FileHeader();
     bool Allocate(BitMap *bitMap, int fileSize);// Initialize a file header, 
 						//  including allocating space 
 						//  on disk for the file data
