@@ -37,6 +37,12 @@
 
 class FileHeader {
   public:
+    FileHeader(){
+      memset(dataSectors, 0, sizeof(dataSectors));
+    }
+    ~FileHeader(){
+      
+    }
     bool Allocate(BitMap *bitMap, int fileSize);// Initialize a file header, 
 						//  including allocating space 
 						//  on disk for the file data
@@ -55,6 +61,7 @@ class FileHeader {
 					// in bytes
 
     void Print();			// Print the contents of the file.
+    bool Extend(int newNumBytes);
 
   private:
     int numBytes;			// Number of bytes in the file

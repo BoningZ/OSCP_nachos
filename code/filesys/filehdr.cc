@@ -26,6 +26,35 @@
 
 #include "system.h"
 #include "filehdr.h"
+#include "math.h"
+#include "time.h"
+
+
+
+
+bool
+FileHeader::Extend(int newNumBytes){
+    if(newNumBytes<numBytes)return false;//wrong param
+    if(newNumBytes==numBytes)return true;//no need to change
+    int newNumSectors=ceil((double)newNumBytes/(double)SectorSize);
+    int oldNumSectors=ceil((double)numBytes/(double)SectorSize);
+    if(newNumSectors==oldNumSectors){//same num of sectors
+        numBytes=newNumBytes;
+        return true;
+    }
+    int deltaSectors=newNumSectors-oldNumSectors;
+    OpenFile *openFile=new OpenFile(0);
+    BitMap *bitMap=new BitMap(oldNumSectors);
+    bitMap->FetchFrom(openFile);
+    //disk is full or file is too big
+    if(newNumBytes>NumDirect||deltaSectors>bitMap->NumClear())return false;
+    //allocate
+    for(int i=oldNumSectors;i<newNumSectors;i++)dataSectors[i]=bitMap->Find();
+    bitMap->WriteBack(openFile);
+    numBytes=newNumBytes;
+    numSectors=time(NULL);//current timestamp(sec)
+    return true;
+}
 
 //----------------------------------------------------------------------
 // FileHeader::Allocate

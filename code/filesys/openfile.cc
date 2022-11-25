@@ -148,11 +148,12 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
     bool firstAligned, lastAligned;
     char *buf;
 
-    if ((numBytes <= 0) || (position >= fileLength))  // For original Nachos file system
-//    if ((numBytes <= 0) || (position > fileLength))  // For lab4 ...
+    //if ((numBytes <= 0) || (position >= fileLength))  // For original Nachos file system
+    if ((numBytes <= 0) || (position > fileLength))  // For lab4 ...now ok to write from EOF
 	return 0;				// check request
     if ((position + numBytes) > fileLength)
-	numBytes = fileLength - position;
+        if(!hdr->Extend(position+numBytes))return 0;//possible to fail
+
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 
