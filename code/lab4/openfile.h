@@ -87,6 +87,7 @@ class OpenFile {
 					// end of file, tell, lseek back 
 		void WriteBack();
 		void SetModifiedTime(int modifiedTime);
+		int GetModifiedTime();
     
   private:
     FileHeader *hdr;			// Header for this file 

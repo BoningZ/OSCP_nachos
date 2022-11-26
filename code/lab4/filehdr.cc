@@ -44,6 +44,11 @@ FileHeader::SetModifiedTime(int newTime){
     modifiedTime=newTime;
 }
 
+int
+FileHeader::GetModifiedTime(){
+    return modifiedTime;
+}
+
 
 bool
 FileHeader::Extend(int newNumBytes){
@@ -70,7 +75,6 @@ FileHeader::Extend(int newNumBytes){
     for(int i=numSectors();i<newNumSectors;i++)dataSectors[i]=bitMap->Find();
     bitMap->WriteBack(openFile);
     numBytes=newNumBytes;
-    modifiedTime=(int)time(NULL);//current timestamp(sec)
     return true;
 }
 
@@ -137,7 +141,6 @@ void
 FileHeader::WriteBack(int sector)
 {
     synchDisk->WriteSector(sector, (char *)this); 
-    modifiedTime=(int)time(NULL);
 }
 
 //----------------------------------------------------------------------

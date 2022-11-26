@@ -62,6 +62,7 @@ class FileHeader {
     bool Extend(int newNumBytes);
     int numSectors();
     void SetModifiedTime(int newTime);
+    int GetModifiedTime();
 
   private:
     int numBytes;			// Number of bytes in the file

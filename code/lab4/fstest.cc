@@ -21,6 +21,7 @@
 #include "disk.h"
 #include "stats.h"
 #include "sys/stat.h"
+#include "time.h"
 
 #include "directory.h"
 
@@ -68,6 +69,7 @@ Copy(char *from, char *to)
 	openFile->Write(buffer, amountRead);	
     delete [] buffer;
 
+// new file time shoule be the same as original
     struct stat buf;
     stat(from,&buf);
     openFile->SetModifiedTime((int)buf.st_mtime);
@@ -128,7 +130,12 @@ Append(char *from, char *to, int half)
 	        return;
 	    }
 	    openFile = fileSystem->Open(to);
-    }
+        //new file, modified time should be the same as original
+        struct stat buf;
+        stat(from,&buf);
+        openFile->SetModifiedTime((int)buf.st_mtime);
+    }else openFile->SetModifiedTime((int)time(NULL));//existing file, change time
+    
 
     ASSERT(openFile != NULL);
     // append from position "start"
@@ -205,15 +212,17 @@ NAppend(char *from, char *to)
 	 
     if ( (openFileTo = fileSystem->Open(to)) == NULL)
     {
-	// file "to" does not exits, then create one
-	if (!fileSystem->Create(to, 0)) 
-	{
-	    printf("Append: couldn't create the file %s to append\n", to);
-	    delete openFileFrom;
-	    return;
-	}
-	openFileTo = fileSystem->Open(to);
-    }
+	    // file "to" does not exits, then create one
+	    if (!fileSystem->Create(to, 0)) 
+	    {
+	        printf("Append: couldn't create the file %s to append\n", to);
+	        delete openFileFrom;
+	        return;
+	    }
+	    openFileTo = fileSystem->Open(to);
+        //new file, time should be as the original
+        openFileTo->SetModifiedTime(openFileFrom->GetModifiedTime());
+    }else openFileTo->SetModifiedTime((int)time(NULL));
 
     ASSERT(openFileTo != NULL);
     // append from position "start"

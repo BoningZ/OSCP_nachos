@@ -206,3 +206,8 @@ OpenFile::SetModifiedTime(int modifiedTime){
     hdr->SetModifiedTime(modifiedTime);
     WriteBack();
 }
+
+int
+OpenFile::GetModifiedTime(){
+    return hdr->GetModifiedTime();
+}
