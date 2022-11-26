@@ -19,6 +19,7 @@
 #include "math.h"
 
 #define NumDirect 	(int)((SectorSize - 2 * sizeof(int)) / sizeof(int))
+#define LastIndex (NumDirect-1)
 #define NumDirect2 (int)(SectorSize/sizeof(int))//next linked level
 #define MaxFileSize 	(NumDirect * SectorSize)
 

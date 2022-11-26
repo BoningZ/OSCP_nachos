@@ -93,11 +93,19 @@ bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
-    if (freeMap->NumClear() < numSectors())
-	return FALSE;		// not enough space
+    if (freeMap->NumClear() < numSectors())return FALSE;//not enough disk space
+    if(NumDirect+NumDirect2<=numSectors())return false;//not enough file indeces
 
     for (int i = 0; i < numSectors(); i++)
-	dataSectors[i] = freeMap->Find();
+	    dataSectors[i] = freeMap->Find();
+    if(numSectors()<LastIndex)dataSectors[LastIndex]=-1;//no need level 2
+    else{//need level 2
+        dataSectors[LastIndex]=freeMap->Find();
+        int dataSectors2[NumDirect2];
+        for(int i=0;i<=numSectors()-NumDirect;i++)
+            dataSectors2[i]=freeMap->Find();
+        synchDisk->WriteSector(dataSectors[LastIndex],(char*)dataSectors2);
+    }
     return TRUE;
 }
 
@@ -114,6 +122,13 @@ FileHeader::Deallocate(BitMap *freeMap)
     for (int i = 0; i < numSectors(); i++) {
 	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 	freeMap->Clear((int) dataSectors[i]);
+    }
+    if(dataSectors[LastIndex]!=-1){//need to clear level 2
+        int dataSectors2[NumDirect2];
+        synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
+        freeMap->Clear((int)dataSectors[LastIndex]);
+        for(int i=0;i<=numSectors()-NumDirect;i++)
+            freeMap->Clear((int)dataSectors2[i]);
     }
 }
 
@@ -156,7 +171,13 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+    if(offset/SectorSize<LastIndex)//not in level 2
+        return(dataSectors[offset / SectorSize]);
+    else{//in level 2
+        int dataSectors2[NumDirect2];
+        synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
+        return dataSectors2[offset/SectorSize-LastIndex];
+    }
 }
 
 //----------------------------------------------------------------------
