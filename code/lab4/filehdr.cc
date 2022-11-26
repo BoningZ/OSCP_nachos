@@ -26,6 +26,53 @@
 
 #include "system.h"
 #include "filehdr.h"
+#include "math.h"
+#include "time.h"
+
+
+FileHeader::FileHeader(){
+     memset(dataSectors, 0, sizeof(dataSectors));
+}
+
+int
+FileHeader::numSectors(){
+    return ceil((double)numBytes/(double)SectorSize);
+}
+
+void 
+FileHeader::SetModifiedTime(int newTime){
+    modifiedTime=newTime;
+}
+
+
+bool
+FileHeader::Extend(int newNumBytes){
+    if(newNumBytes<numBytes)return false;//wrong param
+    if(newNumBytes==numBytes)return true;//no need to change
+    int newNumSectors=ceil((double)newNumBytes/(double)SectorSize);
+    if(newNumSectors==numSectors()){//same num of sectors
+        numBytes=newNumBytes;
+        return true;
+    }
+    int deltaSectors=newNumSectors-numSectors();
+    OpenFile *openFile=new OpenFile(0);
+    BitMap *bitMap=new BitMap(NumDirect);
+    bitMap->FetchFrom(openFile);
+    //disk is full or file is too big
+    if(newNumSectors>NumDirect||deltaSectors>bitMap->NumClear()){
+        printf("disk is full/ file is too big\n");
+        printf("old size:%dB--new size:%dB\n",numBytes,newNumBytes);
+        printf("new sectors:%d   delta:%d   direct:%d   clear:%d\n",newNumSectors,deltaSectors,NumDirect,bitMap->NumClear());
+        bitMap->Print();
+        return false;
+    }
+    //allocate
+    for(int i=numSectors();i<newNumSectors;i++)dataSectors[i]=bitMap->Find();
+    bitMap->WriteBack(openFile);
+    numBytes=newNumBytes;
+    modifiedTime=(int)time(NULL);//current timestamp(sec)
+    return true;
+}
 
 //----------------------------------------------------------------------
 // FileHeader::Allocate
@@ -42,11 +89,10 @@ bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
+    if (freeMap->NumClear() < numSectors())
 	return FALSE;		// not enough space
 
-    for (int i = 0; i < numSectors; i++)
+    for (int i = 0; i < numSectors(); i++)
 	dataSectors[i] = freeMap->Find();
     return TRUE;
 }
@@ -61,7 +107,7 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
-    for (int i = 0; i < numSectors; i++) {
+    for (int i = 0; i < numSectors(); i++) {
 	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 	freeMap->Clear((int) dataSectors[i]);
     }
@@ -91,6 +137,7 @@ void
 FileHeader::WriteBack(int sector)
 {
     synchDisk->WriteSector(sector, (char *)this); 
+    modifiedTime=(int)time(NULL);
 }
 
 //----------------------------------------------------------------------
@@ -132,11 +179,18 @@ FileHeader::Print()
     int i, j, k;
     char *data = new char[SectorSize];
 
-    printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
-    for (i = 0; i < numSectors; i++)
-	printf("%d ", dataSectors[i]);
+    printf("FileHeader contents.\nFile size: %d.\nFile blocks:", numBytes);
+    for (i = 0; i < numSectors(); i++)printf("%d ", dataSectors[i]);
+
+    if(modifiedTime){//only normal file can have modified time
+        char s[100];
+        time_t tmpTime=(time_t)modifiedTime;
+        strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &*localtime(&tmpTime));  
+        printf("\nLast modified time:%s", s);  
+    }
+
     printf("\nFile contents:\n");
-    for (i = k = 0; i < numSectors; i++) {
+    for (i = k = 0; i < numSectors(); i++) {
 	synchDisk->ReadSector(dataSectors[i], data);
         for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++) {
 	    if ('\040' <= data[j] && data[j] <= '\176')   // isprint(data[j])
