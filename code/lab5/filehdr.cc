@@ -119,7 +119,7 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
-    for (int i = 0; i < numSectors(); i++) {
+    for (int i = 0; i < numSectors()&&i<LastIndex; i++) {
 	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 	freeMap->Clear((int) dataSectors[i]);
     }
@@ -203,8 +203,16 @@ FileHeader::Print()
     int i, j, k;
     char *data = new char[SectorSize];
 
+    bool level2=dataSectors[LastIndex]!=-1;
+    int dataSectors2[NumDirect2];
+    if(level2)
+        synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
+    
+
     printf("FileHeader contents.\nFile size: %d.\nFile blocks:", numBytes);
-    for (i = 0; i < numSectors(); i++)printf("%d ", dataSectors[i]);
+    for (i = 0; i < numSectors()&&i<LastIndex; i++)printf("%d ", dataSectors[i]);
+    if(level2)
+        for(i=0;i<=numSectors()-NumDirect;i++)printf("%d ",dataSectors2[i]);
 
     if(modifiedTime){//only normal file can have modified time
         char s[100];
@@ -215,7 +223,8 @@ FileHeader::Print()
 
     printf("\nFile contents:\n");
     for (i = k = 0; i < numSectors(); i++) {
-	synchDisk->ReadSector(dataSectors[i], data);
+        if(i<LastIndex)synchDisk->ReadSector(dataSectors[i], data);
+        else synchDisk->ReadSector(dataSectors2[i-LastIndex],data);
         for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++) {
 	    if ('\040' <= data[j] && data[j] <= '\176')   // isprint(data[j])
 		printf("%c", data[j]);
