@@ -200,3 +200,9 @@ void
 OpenFile::WriteBack(){
     hdr->WriteBack(sector);
 }
+
+void
+OpenFile::SetModifiedTime(int modifiedTime){
+    hdr->SetModifiedTime(modifiedTime);
+    WriteBack();
+}

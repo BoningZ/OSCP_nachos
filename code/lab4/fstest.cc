@@ -20,6 +20,7 @@
 #include "thread.h"
 #include "disk.h"
 #include "stats.h"
+#include "sys/stat.h"
 
 #include "directory.h"
 
@@ -66,6 +67,10 @@ Copy(char *from, char *to)
     while ((amountRead = fread(buffer, sizeof(char), TransferSize, fp)) > 0)
 	openFile->Write(buffer, amountRead);	
     delete [] buffer;
+
+    struct stat buf;
+    stat(from,&buf);
+    openFile->SetModifiedTime((int)buf.st_mtime);
 
 // Close the UNIX and the Nachos files
     delete openFile;
@@ -115,14 +120,14 @@ Append(char *from, char *to, int half)
 	 
     if ( (openFile = fileSystem->Open(to)) == NULL)
     {
-	// file "to" does not exits, then create one
-	if (!fileSystem->Create(to, 0)) 
-	{
-	    printf("Append: couldn't create the file %s to append\n", to);
-	    fclose(fp);
-	    return;
-	}
-	openFile = fileSystem->Open(to);
+	    // file "to" does not exits, then create one
+	    if (!fileSystem->Create(to, 0)) 
+	    {
+	        printf("Append: couldn't create the file %s to append\n", to);
+	        fclose(fp);
+	        return;
+	    }
+	    openFile = fileSystem->Open(to);
     }
 
     ASSERT(openFile != NULL);
@@ -147,7 +152,7 @@ Append(char *from, char *to, int half)
     delete [] buffer;
 
 //  Write the inode back to the disk, because we have changed it
-//  openFile->WriteBack();
+    openFile->WriteBack();
 //  printf("inodes have been written back\n");
     
 // Close the UNIX and the Nachos files
@@ -232,7 +237,7 @@ NAppend(char *from, char *to)
     delete [] buffer;
 
 //  Write the inode back to the disk, because we have changed it
-//  openFileTo->WriteBack();
+    openFileTo->WriteBack();
 //  printf("inodes have been written back\n");
     
 // Close both Nachos files
@@ -314,7 +319,7 @@ FileWrite()
     }
 
 //  Write the inode back to the disk, because we have changed it
-//  openFile->WriteBack();
+    openFile->WriteBack();
 //  printf("inodes have been written back\n");
     
     delete openFile;	// close file
