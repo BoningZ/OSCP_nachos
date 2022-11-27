@@ -62,7 +62,7 @@ FileHeader::Extend(int newNumBytes){
     }
     int deltaSectors=newNumSectors-numSectors();
     OpenFile *openFile=new OpenFile(0);
-    BitMap *bitMap=new BitMap(SectorSize);
+    BitMap *bitMap=new BitMap(NumSectors);
     bitMap->FetchFrom(openFile);
     //disk is full or file is too big
     if(newNumSectors>=NumDirect+NumDirect2||deltaSectors>bitMap->NumClear()){
@@ -75,13 +75,17 @@ FileHeader::Extend(int newNumBytes){
     //allocate
     for(int i=numSectors();i<newNumSectors&&i<LastIndex;i++)dataSectors[i]=bitMap->Find();
     if(newNumSectors>=NumDirect){//need level 2
+        printf("start to extend level 2...\n");
         int dataSectors2[NumDirect2],start=0;
         if(dataSectors[LastIndex]!=-1){//level 2 already existed, read from disk 
             synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
             start=numSectors()-NumDirect+1;
         }    
         //allocate for level 2
-        for(int i=start;i<=newNumSectors-NumDirect;i++)dataSectors2[i]=bitMap->Find();
+        for(int i=start;i<=newNumSectors-NumDirect;i++){
+            dataSectors2[i]=bitMap->Find();
+            printf("level2[%d] allocated to:%d\n",i,dataSectors2[i]);
+        }
         synchDisk->WriteSector(dataSectors[LastIndex],(char*)dataSectors2);
     }
     bitMap->WriteBack(openFile);
@@ -223,7 +227,7 @@ FileHeader::Print()
     printf("FileHeader contents.\nFile size: %d.\nFile blocks:", numBytes);
     for (i = 0; i < numSectors()&&i<LastIndex; i++)printf("%d ", dataSectors[i]);
     if(level2){
-        printf("  (level2)")
+        printf("  (level2)");
         for(i=0;i<=numSectors()-NumDirect;i++)printf("%d ",dataSectors2[i]);
     }
 

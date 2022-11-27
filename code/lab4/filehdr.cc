@@ -61,7 +61,7 @@ FileHeader::Extend(int newNumBytes){
     }
     int deltaSectors=newNumSectors-numSectors();
     OpenFile *openFile=new OpenFile(0);
-    BitMap *bitMap=new BitMap(SectorSize);
+    BitMap *bitMap=new BitMap(NumSectors);
     bitMap->FetchFrom(openFile);
     //disk is full or file is too big
     if(newNumSectors>NumDirect||deltaSectors>bitMap->NumClear()){
