@@ -360,7 +360,7 @@ FileSystem::PrintInfo(){
 
     //total size
     int totalSize=NumSectors*SectorSize;
-    printf("Total disk size: %d Bytes\n",totalSize);
+    printf("Total size: %d Sectors, %d Bytes\n",NumSectors,totalSize);
 
     //used or free size
     int clearSectors=freeMap->NumClear();
@@ -372,7 +372,7 @@ FileSystem::PrintInfo(){
     int normalSectors=directory->SectorStat(false);
     int allBytes=normalSectors*SectorSize;
     int fragmentedSectors=directory->SectorStat(true);
-    printf("Size used by %d normal files:\n\twithout internal fragments: %d Bytes\n",directory->NumUsing,idealBytes);
+    printf("Size used by %d normal files:\n\twithout internal fragments: %d Bytes\n",directory->NumUsing(),idealBytes);
     printf("\tactually used: %d Bytes in %d Sectors\n",allBytes,normalSectors);
     printf("\tfragmented: %d Bytes in %d Sectors\n",allBytes-idealBytes,fragmentedSectors);
 }
