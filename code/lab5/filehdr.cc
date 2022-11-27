@@ -32,6 +32,7 @@
 
 FileHeader::FileHeader(){
      memset(dataSectors, 0, sizeof(dataSectors));
+     dataSectors[LastIndex]=-1;
 }
 
 int
@@ -64,15 +65,24 @@ FileHeader::Extend(int newNumBytes){
     BitMap *bitMap=new BitMap(NumDirect);
     bitMap->FetchFrom(openFile);
     //disk is full or file is too big
-    if(newNumSectors>NumDirect||deltaSectors>bitMap->NumClear()){
+    if(newNumSectors>=NumDirect+NumDirect2||deltaSectors>bitMap->NumClear()){
         printf("disk is full/ file is too big\n");
         printf("old size:%dB--new size:%dB\n",numBytes,newNumBytes);
-        printf("new sectors:%d   delta:%d   direct:%d   clear:%d\n",newNumSectors,deltaSectors,NumDirect,bitMap->NumClear());
+        printf("new sectors:%d   delta:%d   direct:%d+%d   clear:%d\n",newNumSectors,deltaSectors,NumDirect,NumDirect2,bitMap->NumClear());
         bitMap->Print();
         return false;
     }
     //allocate
-    for(int i=numSectors();i<newNumSectors;i++)dataSectors[i]=bitMap->Find();
+    for(int i=numSectors();i<newNumSectors&&i<LastIndex;i++)dataSectors[i]=bitMap->Find();
+    if(newNumSectors>=NumDirect){
+        int dataSectors2[NumDirect2],start=0;
+        if(dataSectors[LastIndex]!=-1){
+            synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
+            start=numSectors()-NumDirect+1;
+        }    
+        for(int i=start;i<=newNumSectors-NumDirect;i++)dataSectors2[i]=bitMap->Find();
+        synchDisk->WriteSectors(dataSectors[LastIndex],(char*)dataSectors2);
+    }
     bitMap->WriteBack(openFile);
     numBytes=newNumBytes;
     return true;
@@ -94,9 +104,9 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     if (freeMap->NumClear() < numSectors())return FALSE;//not enough disk space
-    if(NumDirect+NumDirect2<=numSectors())return false;//not enough file indeces
+    if(NumDirect+NumDirect2<=numSectors())return false;//not enough file indices
 
-    for (int i = 0; i < numSectors(); i++)
+    for (int i = 0; i < numSectors()&&i<LastIndex; i++)
 	    dataSectors[i] = freeMap->Find();
     if(numSectors()<LastIndex)dataSectors[LastIndex]=-1;//no need level 2
     else{//need level 2
