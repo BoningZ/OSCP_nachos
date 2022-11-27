@@ -80,12 +80,9 @@ FileHeader::Extend(int newNumBytes){
         if(dataSectors[LastIndex]!=-1){//level 2 already existed, read from disk 
             synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
             start=numSectors()-NumDirect+1;
-        }    
+        }else dataSectors[LastIndex]=bitMap->Find(); //no existing level 2, create at the last index   
         //allocate for level 2
-        for(int i=start;i<=newNumSectors-NumDirect;i++){
-            dataSectors2[i]=bitMap->Find();
-            printf("level2[%d] allocated to:%d\n",i,dataSectors2[i]);
-        }
+        for(int i=start;i<=newNumSectors-NumDirect;i++)dataSectors2[i]=bitMap->Find();
         synchDisk->WriteSector(dataSectors[LastIndex],(char*)dataSectors2);
     }
     bitMap->WriteBack(openFile);
