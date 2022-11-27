@@ -195,3 +195,31 @@ Directory::Print()
     printf("\n");
     delete hdr;
 }
+
+
+//----------------------------------------------------------------------
+// Directory::NumUsing
+// 	Get the number of using files (not deleted).
+//----------------------------------------------------------------------
+int 
+Directory::NumUsing(){
+    int res=0;
+    for(int i=0;i<tableSize;i++)res+=table[i].inUse;
+    return res;
+}
+
+//----------------------------------------------------------------------
+// Directory::BytesUsed
+// 	Get the bytes used by normal files.
+//----------------------------------------------------------------------
+int 
+Directory::BytesUsed(bool includingFrag){
+    FileHeader *hdr=new FileHeader;
+    int res=0;
+    for(int i=0;i<tableSize;i++)
+    if(table[i].inUse){
+        hdr->FetchFrom(table[i].sector);
+        res+=hdr->NumBytes(includingFrag);
+    }
+    return res;
+}

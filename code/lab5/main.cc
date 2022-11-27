@@ -147,6 +147,8 @@ main(int argc, char **argv)
             fileSystem->Print();
 	} else if (!strcmp(*argv, "-t")) {	// performance test
             PerformanceTest();
+	} else if (!strcmp(*argv, "-DI")){	// print disk info 
+			fileSystem->PrintInfo();
 	}
 #endif // FILESYS
 #ifdef NETWORK

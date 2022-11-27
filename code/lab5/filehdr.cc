@@ -50,6 +50,11 @@ FileHeader::GetModifiedTime(){
     return modifiedTime;
 }
 
+int
+FileHeader::NumBytes(bool includingFrag){
+    return includingFrag?numSectors()*SectorSize:numBytes;
+}
+
 
 bool
 FileHeader::Extend(int newNumBytes){

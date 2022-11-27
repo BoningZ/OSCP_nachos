@@ -65,6 +65,7 @@ class FileHeader {
     int numSectors();
     void SetModifiedTime(int newTime);
     int GetModifiedTime();
+    int NumBytes(bool includingFrag);
 
   private:
     int numBytes;			// Number of bytes in the file

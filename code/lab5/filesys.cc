@@ -339,3 +339,38 @@ FileSystem::Print()
     delete freeMap;
     delete directory;
 }
+
+//----------------------------------------------------------------------
+// FileSystem::PrintInfo
+// 	Print some disk info:
+//	  total size of the whole disk
+//	  used size
+//    free size
+//    num of normal files
+//    total bytes of normal files
+//    bytes used by normal files(including internal fragments)
+//    bytes used by internal fragments(caused by normal files)
+//----------------------------------------------------------------------
+void 
+FileSystem::PrintInfo(){
+    BitMap *freeMap=new BitMap(NumSectors);
+    freeMap->FetchFrom(freeMapFile);
+    Directory *directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+
+    //total size
+    int totalSize=NumSectors*SectorSize;
+    printf("Total disk size: %d Bytes\n",totalSize);
+
+    //used or free size
+    int clearSectors=freeMap->NumClear();
+    printf("Used size: %d Sectors, %d Bytes\n",NumSectors-clearSectors,totalSize-clearSectors*SectorSize);
+    printf("Free size: %d Sectors, %d Bytes\n",clearSectors,clearSectors*SectorSize);
+
+    //num and size used by normal files
+    int idealBytes=directory->BytesUsed(false);
+    int allBytes=directory->BytesUsed(true);
+    printf("Size used by %d normal files:\n\twithout internal fragments: %d Bytes\n",directory->NumUsing,idealBytes);
+    printf("\tincluding internal fragments: %d\n",allBytes);
+    printf("\tonly internal fragments: %d\n",allBytes-idealBytes);
+}
