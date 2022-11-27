@@ -75,7 +75,6 @@ FileHeader::Extend(int newNumBytes){
     //allocate
     for(int i=numSectors();i<newNumSectors&&i<LastIndex;i++)dataSectors[i]=bitMap->Find();
     if(newNumSectors>=NumDirect){//need level 2
-        printf("start to extend level 2...\n");
         int dataSectors2[NumDirect2],start=0;
         if(dataSectors[LastIndex]!=-1){//level 2 already existed, read from disk 
             synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
