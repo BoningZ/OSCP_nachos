@@ -223,3 +223,15 @@ Directory::BytesUsed(bool includingFrag){
     }
     return res;
 }
+
+int 
+Directory::SectorStat(bool onlyFragmented){
+    FileHeader *hdr=new FileHeader;
+    int res=0;
+    for(int i=0;i<tableSize;i++)
+    if(table[i].inUse){
+        hdr->FetchFrom(table[i].sector);
+        res+=onlyFragmented?hdr->NumBytes(true)==hdr->NumBytes(false):hdr->numSectors();
+    }
+    return res;
+}

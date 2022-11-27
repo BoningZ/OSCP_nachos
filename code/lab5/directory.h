@@ -72,6 +72,7 @@ class Directory {
 					//  names and their contents.
     int NumUsing();
     int BytesUsed(bool includingFrag);
+    int SectorStat(bool onlyFragmented);
 
   private:
     int tableSize;			// Number of directory entries

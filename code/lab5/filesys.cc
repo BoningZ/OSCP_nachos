@@ -369,8 +369,10 @@ FileSystem::PrintInfo(){
 
     //num and size used by normal files
     int idealBytes=directory->BytesUsed(false);
-    int allBytes=directory->BytesUsed(true);
+    int normalSectors=directory->SectorStat(false);
+    int allBytes=normalSectors*SectorSize;
+    int fragmentedSectors=directory->SectorStat(true);
     printf("Size used by %d normal files:\n\twithout internal fragments: %d Bytes\n",directory->NumUsing,idealBytes);
-    printf("\tincluding internal fragments: %d\n",allBytes);
-    printf("\tonly internal fragments: %d\n",allBytes-idealBytes);
+    printf("\tactually used: %d Bytes in %d Sectors\n",allBytes,normalSectors);
+    printf("\tfragmented: %d Bytes in %d Sectors\n",allBytes-idealBytes,fragmentedSectors);
 }
