@@ -62,7 +62,7 @@ FileHeader::Extend(int newNumBytes){
     }
     int deltaSectors=newNumSectors-numSectors();
     OpenFile *openFile=new OpenFile(0);
-    BitMap *bitMap=new BitMap(NumDirect);
+    BitMap *bitMap=new BitMap(SectorSize);
     bitMap->FetchFrom(openFile);
     //disk is full or file is too big
     if(newNumSectors>=NumDirect+NumDirect2||deltaSectors>bitMap->NumClear()){
@@ -74,14 +74,15 @@ FileHeader::Extend(int newNumBytes){
     }
     //allocate
     for(int i=numSectors();i<newNumSectors&&i<LastIndex;i++)dataSectors[i]=bitMap->Find();
-    if(newNumSectors>=NumDirect){
+    if(newNumSectors>=NumDirect){//need level 2
         int dataSectors2[NumDirect2],start=0;
-        if(dataSectors[LastIndex]!=-1){
+        if(dataSectors[LastIndex]!=-1){//level 2 already existed, read from disk 
             synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
             start=numSectors()-NumDirect+1;
         }    
+        //allocate for level 2
         for(int i=start;i<=newNumSectors-NumDirect;i++)dataSectors2[i]=bitMap->Find();
-        synchDisk->WriteSectors(dataSectors[LastIndex],(char*)dataSectors2);
+        synchDisk->WriteSector(dataSectors[LastIndex],(char*)dataSectors2);
     }
     bitMap->WriteBack(openFile);
     numBytes=newNumBytes;
@@ -221,8 +222,10 @@ FileHeader::Print()
 
     printf("FileHeader contents.\nFile size: %d.\nFile blocks:", numBytes);
     for (i = 0; i < numSectors()&&i<LastIndex; i++)printf("%d ", dataSectors[i]);
-    if(level2)
+    if(level2){
+        printf("  (level2)")
         for(i=0;i<=numSectors()-NumDirect;i++)printf("%d ",dataSectors2[i]);
+    }
 
     if(modifiedTime){//only normal file can have modified time
         char s[100];
