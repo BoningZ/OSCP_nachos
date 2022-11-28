@@ -15,8 +15,10 @@
 
 #include "copyright.h"
 #include "filesys.h"
+#include "bitmap.h"
 
 #define UserStackSize		1024 	// increase this as necessary!
+#define NumProcess 256
 
 class AddrSpace {
   public:
@@ -30,12 +32,15 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
+    void Print(); // print state of memory
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
+    int spaceId;
+    static BitMap *freeMap,*spaceIdMap; 
 };
 
 #endif // ADDRSPACE_H
