@@ -207,3 +207,8 @@ AddrSpace::Print(){
         printf("\t%d, \t\t%d\n",pageTable[i].virtualPage,pageTable[i].physicalPage);
     printf("============================================\n");
 }
+
+int
+AddrSpace::GetSpaceId(){
+    return spaceId;
+}

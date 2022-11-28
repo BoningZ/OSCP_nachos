@@ -25,6 +25,12 @@
 #include "system.h"
 #include "syscall.h"
 
+void IncrementPC(){
+    machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+    machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+    machine->WriteRegister(NextPCReg,machine->ReadRegister(NextPCReg)+4);
+}
+
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
