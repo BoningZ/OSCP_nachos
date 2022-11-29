@@ -367,3 +367,41 @@ Interrupt::DumpState()
     printf("End of pending interrupts\n");
     fflush(stdout);
 }
+
+void 
+InitProcess(int spaceId){
+    ASSERT(currentThread->space->getSpaceId()==spaceId);
+    currentThread->space->InitRegisters();
+    currentThread->space->RestoreState();
+    machine->Run();//invoke
+    ASSERT(false);
+}
+
+void 
+Interrupt::Exec(){
+    int fileAddr=machine->ReadRegister(4);
+    char filename[50];
+    //read in the filename from memory
+    int i=0;
+    machine->ReadMem(fileAddr,1,(int*)&filename[0]);
+    while(filename[i++]!='\0')
+        machine->ReadMem(fileAddr+i,1,(int*)&filename[i]);
+    OpenFile *executable=fileSystem->Open(filename);
+    if(executable==NULL){
+        printf("Unable to open file %s\n",filename);
+        return;
+    }
+
+    printf("Exec(%s)\n",filename);
+    AddrSpace *space=new AddrSpace(executable);//allocate new addrspace
+    space->Print();
+    delete executable;//close file
+
+    Thread *thread=new Thread(filename);//new kernal thread
+    thread->space=space;//user thread map to kernal thread
+
+    thread->Fork(InitProcess,space->getSpaceId());
+    machine->WriteRegister(2,space->getSpaceId());//return spaceid to reg2
+
+    currentThread->Yield();//release cpu to next thread
+}
