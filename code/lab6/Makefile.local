@@ -15,7 +15,8 @@ CCFILES += addrspace.cc\
 	console.cc\
 	machine.cc\
 	mipssim.cc\
-	translate.cc
+	translate.cc\
+	interrupt.cc
 
 INCPATH = -I- -I../lab6 -I../bin -I../threads -I../machine -I../userprog -I../filesys
 
