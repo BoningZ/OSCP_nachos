@@ -370,7 +370,7 @@ Interrupt::DumpState()
 
 void 
 InitProcess(int spaceId){
-    ASSERT(currentThread->space->getSpaceId()==spaceId);
+    ASSERT(currentThread->space->GetSpaceId()==spaceId);
     currentThread->space->InitRegisters();
     currentThread->space->RestoreState();
     machine->Run();//invoke
@@ -392,16 +392,15 @@ Interrupt::Exec(){
         return;
     }
 
-    printf("Exec(%s)\n",filename);
+    printf("Exec(%s):\n",filename);
     AddrSpace *space=new AddrSpace(executable);//allocate new addrspace
-    space->Print();
     delete executable;//close file
 
     Thread *thread=new Thread(filename);//new kernal thread
     thread->space=space;//user thread map to kernal thread
 
-    thread->Fork(InitProcess,space->getSpaceId());
-    machine->WriteRegister(2,space->getSpaceId());//return spaceid to reg2
+    thread->Fork(InitProcess,space->GetSpaceId());
+    machine->WriteRegister(2,space->GetSpaceId());//return spaceid to reg2
 
     currentThread->Yield();//release cpu to next thread
 }

@@ -66,7 +66,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     unsigned int i, size;
 
     //allocate spaceId
-    ASSERT(spaceIdMap->NumClear>0);
+    ASSERT(spaceIdMap->NumClear()>0);
     spaceId=spaceIdMap->Find();
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
@@ -120,6 +120,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", pagePos+offset, noffH.initData.size);
         executable->ReadAt(&(machine->mainMemory[pagePos+offset]),noffH.initData.size, noffH.initData.inFileAddr);
     }
+
+    Print();
 
 }
 
@@ -199,7 +201,7 @@ void AddrSpace::RestoreState()
 //----------------------------------------------------------------------
 void
 AddrSpace::Print(){
-    printf("process spaceId:%d\n",spaceId);
+    printf("SpaceId:%d\n",spaceId);
     printf("page table dump: %d pages in total\n",numPages);
     printf("============================================\n");
     printf("\tVirtPage, \tPhysPage\n");
