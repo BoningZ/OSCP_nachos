@@ -70,6 +70,13 @@ ExceptionHandler(ExceptionType which)
                 interrupt->Exec();
                 IncrementPC();
                 break;
+            case SC_PrintInt:
+                int numAddr=machine->ReadRegister(4);
+                int num;
+                machine->ReadMem(numAddr,1,(int*)&num);
+                printf("%d\n",num);
+                IncrementPC();
+                break;
             default:
                 printf("Unexpected user mode exception %d %d\n", which, type);
 	            ASSERT(FALSE);
