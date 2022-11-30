@@ -214,3 +214,8 @@ int
 AddrSpace::GetSpaceId(){
     return spaceId;
 }
+
+TranslationEntry*
+AddrSpace::getPageTable(){
+    return pageTable;
+}

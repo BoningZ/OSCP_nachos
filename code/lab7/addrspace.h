@@ -34,6 +34,10 @@ class AddrSpace {
     void RestoreState();		// info on a context switch 
     void Print(); // print state of memory
     int GetSpaceId();
+    void FIFO(int newPage);//swap algorithm
+    void readIn(int newPage);//read from disk to mem
+    void writeOut(int newPage);//write from mem to disk
+    TranslationEntry* getPageTable();
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation

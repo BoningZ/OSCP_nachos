@@ -83,7 +83,11 @@ ExceptionHandler(ExceptionType which)
 	            ASSERT(FALSE);
             }
         }
-    } else {
+    } else if(which==PageFaultException){
+        int badVAddr=machine->ReadRegister(BadVAddrReg);
+        printf("page fault exception badVAddr:%d\n",badVAddr);
+        interrupt->PageFault(badVAddr);
+    }else{
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);
     }

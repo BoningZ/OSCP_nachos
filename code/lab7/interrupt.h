@@ -112,6 +112,7 @@ class Interrupt {
     
     void OneTick();       		// Advance simulated time
     void Exec();
+    void PageFault(int badVAddr);
 
   private:
     IntStatus level;		// are interrupts enabled or disabled?
