@@ -84,6 +84,7 @@ ExceptionHandler(ExceptionType which)
             }
         }
     } else if(which==PageFaultException){
+        stats->numPageFaults++;
         int badVAddr=machine->ReadRegister(BadVAddrReg);
         printf("page fault exception badVAddr:%d\n",badVAddr);
         interrupt->PageFault(badVAddr);

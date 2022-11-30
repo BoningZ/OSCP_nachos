@@ -94,7 +94,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
     
-    int necessaryPages=min(5,initPages+3);
+    int necessaryPages=5;
    
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
@@ -259,6 +259,7 @@ AddrSpace::writeOut(int oldPage){
             return;
         }
         swapFile->WriteAt(&(machine->mainMemory[pageTable[oldPage].physicalPage]),PageSize,oldPage*PageSize);
+        stats->numPageWriteOuts++;
         delete swapFile;
     }else{
         printf("Clean! No need to write into disk\n");
