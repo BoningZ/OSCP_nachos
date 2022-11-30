@@ -64,10 +64,12 @@ AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
     unsigned int i, size;
+    pageQueue=new List();
 
     //allocate spaceId
     ASSERT(spaceIdMap->NumClear()>0);
     spaceId=spaceIdMap->Find();
+    sprintf(swapFileName,"SWAP%d",spaceId);
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -80,19 +82,25 @@ AddrSpace::AddrSpace(OpenFile *executable)
 			+ UserStackSize;	// we need to increase the size
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
-    size = numPages * PageSize;
+    size=numPages*PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    int initPages=divRoundUp(noffH.code.size+noffH.initData.size,PageSize);
+
+    ASSERT(initPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
+    
+    int necessaryPages=min(5,initPages+3);
+   
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
-    ASSERT(freeMap->NumClear()>=numPages);//ensure to have enough physical pages
-    for (i = 0; i < numPages; i++) {
+    ASSERT(freeMap->NumClear()>=initPages);//ensure to have enough physical pages
+    for (i = 0; i < necessaryPages; i++) {
+        if(i>=initPages)pageQueue->Append((void*)i);
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 	pageTable[i].physicalPage = freeMap->Find();
 	pageTable[i].valid = TRUE;
@@ -101,6 +109,14 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 					// a separate page, we could set its 
 					// pages to be read-only
+    }
+    for(;i<numPages;i++){
+        pageTable[i].virtualPage=i;
+        pageTable[i].physicalPage=-1;
+        pageTable[i].valid=FALSE;
+        pageTable[i].use=FALSE;
+        pageTable[i].dirty=FALSE;
+        pageTable[i].readOnly=FALSE;
     }
     
 // zero out the entire address space, to zero the unitialized data segment 
@@ -219,3 +235,40 @@ TranslationEntry*
 AddrSpace::getPageTable(){
     return pageTable;
 }
+
+void 
+AddrSpace::readIn(int newPage){
+    OpenFile *swapFile=fileSystem->Open(swapFileName);
+    if(swapFile==NULL){
+        printf("Unable to open swap file %s\n",swapFileName);
+        return;
+    }
+    swapFile->ReadAt(&(machine->mainMemory[pageTable[newPage].physicalPage]),PageSize,newPage*PageSize);
+    delete swapFile;
+    printf("virtual page:%d has been read into mem\n",newPage);
+}
+
+void
+AddrSpace::writeOut(int oldPage){
+    printf("trying to swap virtual page:%d into disk...\t",oldPage);
+    if(pageTable[oldPage].dirty){
+        printf("Dirty! It will be written into disk\n");
+        OpenFile *swapFile=fileSystem->Open(swapFileName);
+        if(swapFile==NULL){
+            printf("Unable to open swap file %s\n",swapFileName);
+            return;
+        }
+        swapFile->WriteAt(&(machine->mainMemory[pageTable[oldPage].physicalPage]),PageSize,oldPage*PageSize);
+        delete swapFile;
+    }else{
+        printf("Clean! No need to write into disk\n");
+    }
+}
+
+int
+AddrSpace::FIFO(int newPage){
+    pageQueue->Append((void*)newPage);
+    return (int)pageQueue->Remove();
+}
+
+
