@@ -17,7 +17,8 @@ CCFILES += addrspace.cc\
 	mipssim.cc\
 	translate.cc\
 	interrupt.cc\
-	stats.cc
+	stats.cc\
+	list.cc
 
 INCPATH = -I- -I../lab7 -I../bin -I../threads -I../machine -I../userprog -I../filesys
 

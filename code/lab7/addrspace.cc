@@ -83,59 +83,82 @@ AddrSpace::AddrSpace(OpenFile *executable)
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     size=numPages*PageSize;
+    fileSystem->Remove(swapFileName);
+    fileSystem->Create(swapFileName,size);
 
-    int initPages=divRoundUp(noffH.code.size+noffH.initData.size,PageSize);
-
-    ASSERT(initPages <= NumPhysPages);		// check we're not trying
-						// to run anything too big --
-						// at least until we have
-						// virtual memory
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
-    
-    int necessaryPages=5;
    
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
-    ASSERT(freeMap->NumClear()>=initPages);//ensure to have enough physical pages
-    for (i = 0; i < necessaryPages; i++) {
-        if(i>=initPages)pageQueue->Append((void*)i);
+    for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = freeMap->Find();
-	pageTable[i].valid = TRUE;
+	pageTable[i].physicalPage = -1;
+	pageTable[i].valid = FALSE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 					// a separate page, we could set its 
 					// pages to be read-only
     }
-    for(;i<numPages;i++){
-        pageTable[i].virtualPage=i;
-        pageTable[i].physicalPage=-1;
-        pageTable[i].valid=FALSE;
-        pageTable[i].use=FALSE;
-        pageTable[i].dirty=FALSE;
-        pageTable[i].readOnly=FALSE;
-    }
     
-// zero out the entire address space, to zero the unitialized data segment 
-// and the stack segment
-    bzero(machine->mainMemory, size);
+
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
-        int pagePos=pageTable[noffH.code.virtualAddr/PageSize].physicalPage*PageSize;
-        int offset=noffH.code.virtualAddr%PageSize;
-        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n",pagePos+offset, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[pagePos+offset]),noffH.code.size, noffH.code.inFileAddr);
+        Segment seg=noffH.code;
+        int startPos=seg.virtualAddr;
+        int endPos=startPos+seg.size;
+        int firstVPage=startPos/PageSize,lastVPage=divRoundUp(endPos,PageSize);
+        int curAddr=seg.inFileAddr;//read from this addr of file
+        for(int vPage=firstVPage;vPage<=lastVPage;vPage++){
+            if(!pageTable[vPage].valid)FIFO(vPage);
+            int pagePos=pageTable[vPage].physicalPage*PageSize;//physical pos
+            if(vPage==firstVPage)pagePos+=startPos%PageSize;
+            int curSize=(vPage==lastVPage?(endPos%PageSize):PageSize)-(vPage==firstVPage?(startPos%PageSize):0);//size
+            executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
+            printf("read code(infile addr:%d length:%d) to vpage:%d\n",curAddr,curSize,vPage);
+            curAddr+=curSize;
+        }
     }
     if (noffH.initData.size > 0) {
-        int pagePos=pageTable[noffH.initData.virtualAddr/PageSize].physicalPage*PageSize;
-        int offset=noffH.initData.virtualAddr%PageSize;
-        DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", pagePos+offset, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[pagePos+offset]),noffH.initData.size, noffH.initData.inFileAddr);
+        Segment seg=noffH.initData;
+        int startPos=seg.virtualAddr;
+        int endPos=startPos+seg.size;
+        int firstVPage=startPos/PageSize,lastVPage=divRoundUp(endPos,PageSize);
+        int curAddr=seg.inFileAddr;//read from this addr of file
+        for(int vPage=firstVPage;vPage<=lastVPage;vPage++){
+            if(!pageTable[vPage].valid)FIFO(vPage);
+            int pagePos=pageTable[vPage].physicalPage*PageSize;//physical pos
+            if(vPage==firstVPage)pagePos+=startPos%PageSize;
+            int curSize=(vPage==lastVPage?endPos%PageSize:PageSize)-(vPage==firstVPage?startPos%PageSize:0);//size
+            executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
+            curAddr+=curSize;
+        }
     }
+
+    /*OpenFile *swapFile=fileSystem->Open(swapFileName);
+    if(swapFile==NULL){
+        printf("Unable to open swap file %s\n",swapFileName);
+        return;
+    }
+    if(noffH.code.size>0){
+        Segment seg=noffH.code;
+        char tmpBuff[seg.size];
+        executable->ReadAt(tmpBuff,seg.size,seg.inFileAddr);
+        swapFile->WriteAt(tmpBuff,seg.size,seg.virtualAddr);
+        printf("vSpace: code start at:%d length:%d\n",seg.virtualAddr,seg.size);
+    }
+    if(noffH.initData.size>0){
+        Segment seg=noffH.initData;
+        char tmpBuff[seg.size];
+        executable->ReadAt(tmpBuff,seg.size,seg.inFileAddr);
+        swapFile->WriteAt(tmpBuff,seg.size,seg.virtualAddr);
+        printf("vSpace: initData start at:%d length:%d\n",seg.virtualAddr,seg.size);
+    }
+    delete swapFile;*/
+
 
     Print();
 
@@ -266,10 +289,31 @@ AddrSpace::writeOut(int oldPage){
     }
 }
 
-int
+void
 AddrSpace::FIFO(int newPage){
+    printf("start to swap, current pageQueue size:%d\n",pageQueue->GetSize());
     pageQueue->Append((void*)newPage);
-    return (int)pageQueue->Remove();
+    int oldPage=-1;
+   
+    if(pageQueue->GetSize()>NumUserProcessFrame)
+        oldPage=(int)pageQueue->Remove();
+    printf("page swapping...\n");
+    if(oldPage!=-1)printf("\tout:vNum: %d, physPage:%d\n",oldPage,pageTable[oldPage].physicalPage);
+    printf("\tin:vNum: %d\n",newPage);
+
+    if(oldPage!=-1){//need to swap out an old page
+        writeOut(oldPage);
+        pageTable[oldPage].valid=false;
+        pageTable[newPage].physicalPage=pageTable[oldPage].physicalPage;   
+    }
+    else pageTable[newPage].physicalPage=freeMap->Find();//limit not reached
+
+    pageTable[newPage].valid=true;
+    pageTable[newPage].dirty=false;
+    pageTable[newPage].readOnly=false;
+    
+    readIn(newPage);
+    Print();
 }
 
 

@@ -407,20 +407,6 @@ Interrupt::Exec(){
 
 void
 Interrupt::PageFault(int badVAddr){
-    TranslationEntry *vPageTable=currentThread->space->getPageTable();
     int newPage=badVAddr/PageSize;
-    int oldPage=currentThread->space->FIFO(newPage);
-    printf("page swapping:\tout:vNum: %d\tin:vNum: %d\n",oldPage,newPage);
-
-    vPageTable[oldPage].valid=false;
-
-    vPageTable[newPage].valid=true;
-    vPageTable[newPage].dirty=false;
-    vPageTable[newPage].readOnly=false;
-    vPageTable[newPage].physicalPage=vPageTable[oldPage].physicalPage;
-
-    currentThread->space->readIn(newPage);
-    currentThread->space->Print();
-
-
+    currentThread->space->FIFO(newPage);
 }

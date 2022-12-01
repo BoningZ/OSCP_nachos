@@ -16,9 +16,11 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "bitmap.h"
+#include "list.h"
 
 #define UserStackSize		1024 	// increase this as necessary!
 #define NumProcess 256
+#define NumUserProcessFrame 5
 
 class AddrSpace {
   public:
@@ -34,10 +36,11 @@ class AddrSpace {
     void RestoreState();		// info on a context switch 
     void Print(); // print state of memory
     int GetSpaceId();
-    int FIFO(int newPage);//swap algorithm
+    void FIFO(int newPage);//swap algorithm
     void readIn(int newPage);//read from disk to mem
     void writeOut(int newPage);//write from mem to disk
     TranslationEntry* getPageTable();
+  
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
@@ -46,7 +49,7 @@ class AddrSpace {
 					// address space
     int spaceId;
     static BitMap *freeMap,*spaceIdMap; 
-    char *swapFileName;
+    char swapFileName[20];
     List *pageQueue;
 };
 
