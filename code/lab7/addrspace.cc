@@ -83,7 +83,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     size=numPages*PageSize;
-    printf("SWAP SIZE:%d\n",size);
 
     //create file
     fileSystem->Remove(swapFileName);
@@ -109,39 +108,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 
 // then, copy in the code and data segments into memory
-    printf("CODE SIZE:%d CODEINFILEADDR:0x%x\n",noffH.code.size,noffH.code.inFileAddr);
-    /*if (noffH.code.size > 0) {
-        Segment seg=noffH.code;
-        int startPos=seg.virtualAddr;
-        int endPos=startPos+seg.size;
-        int firstVPage=startPos/PageSize,lastVPage=divRoundUp(endPos,PageSize);
-        int curAddr=seg.inFileAddr;//read from this addr of file
-        for(int vPage=firstVPage;vPage<=lastVPage;vPage++){
-            if(!pageTable[vPage].valid)FIFO(vPage);
-            int pagePos=pageTable[vPage].physicalPage*PageSize;//physical pos
-            if(vPage==firstVPage)pagePos+=startPos%PageSize;
-            int curSize=(vPage==lastVPage?(endPos%PageSize):PageSize)-(vPage==firstVPage?(startPos%PageSize):0);//size
-            executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
-            printf("read code(infile addr:%d length:%d) to vpage:%d\n",curAddr,curSize,vPage);
-            curAddr+=curSize;
-        }
-    }
-    if (noffH.initData.size > 0) {
-        Segment seg=noffH.initData;
-        int startPos=seg.virtualAddr;
-        int endPos=startPos+seg.size;
-        int firstVPage=startPos/PageSize,lastVPage=divRoundUp(endPos,PageSize);
-        int curAddr=seg.inFileAddr;//read from this addr of file
-        for(int vPage=firstVPage;vPage<=lastVPage;vPage++){
-            if(!pageTable[vPage].valid)FIFO(vPage);
-            int pagePos=pageTable[vPage].physicalPage*PageSize;//physical pos
-            if(vPage==firstVPage)pagePos+=startPos%PageSize;
-            int curSize=(vPage==lastVPage?endPos%PageSize:PageSize)-(vPage==firstVPage?startPos%PageSize:0);//size
-            executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
-            curAddr+=curSize;
-        }
-    }*/
-
     OpenFile *swapFile=fileSystem->Open(swapFileName);
     if(swapFile==NULL){
         printf("Unable to open swap file %s\n",swapFileName);
@@ -247,22 +213,19 @@ void
 AddrSpace::Print(){
     printf("SpaceId:%d\n",spaceId);
     printf("page table dump: %d pages in total\n",numPages);
-    printf("============================================\n");
-    printf("\tVirtPage, \tPhysPage\n");
+    printf("========================================================================================\n");
+    printf("\tVirtPage, \tPhysPage, \tValid, \t\tUse, \t\tDirty\n");
     for(int i=0;i<numPages;i++)
-        printf("\t%d, \t\t%d\n",pageTable[i].virtualPage,pageTable[i].physicalPage);
-    printf("============================================\n");
+        printf("\t%d, \t\t%d, \t\t%d, \t\t%d, \t\t%d\n",pageTable[i].virtualPage,pageTable[i].physicalPage,pageTable[i].valid,pageTable[i].use,pageTable[i].dirty);
+    printf("========================================================================================\n");
 }
+
 
 int
 AddrSpace::GetSpaceId(){
     return spaceId;
 }
 
-TranslationEntry*
-AddrSpace::getPageTable(){
-    return pageTable;
-}
 
 void 
 AddrSpace::readIn(int newPage){
