@@ -83,6 +83,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     size=numPages*PageSize;
+    printf("SWAP SIZE:%d\n",size);
+
+    //create file
     fileSystem->Remove(swapFileName);
     fileSystem->Create(swapFileName,size);
 
@@ -106,7 +109,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 
 // then, copy in the code and data segments into memory
-    if (noffH.code.size > 0) {
+    printf("CODE SIZE:%d CODEINFILEADDR:0x%x\n",noffH.code.size,noffH.code.inFileAddr);
+    /*if (noffH.code.size > 0) {
         Segment seg=noffH.code;
         int startPos=seg.virtualAddr;
         int endPos=startPos+seg.size;
@@ -136,9 +140,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
             executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
             curAddr+=curSize;
         }
-    }
+    }*/
 
-    /*OpenFile *swapFile=fileSystem->Open(swapFileName);
+    OpenFile *swapFile=fileSystem->Open(swapFileName);
     if(swapFile==NULL){
         printf("Unable to open swap file %s\n",swapFileName);
         return;
@@ -157,7 +161,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
         swapFile->WriteAt(tmpBuff,seg.size,seg.virtualAddr);
         printf("vSpace: initData start at:%d length:%d\n",seg.virtualAddr,seg.size);
     }
-    delete swapFile;*/
+    delete swapFile;
 
 
     Print();
@@ -174,6 +178,7 @@ AddrSpace::~AddrSpace()
     for(int i=0;i<numPages;i++)freeMap->Clear(pageTable[i].physicalPage);
     spaceIdMap->Clear(spaceId);
    delete [] pageTable;
+   delete pageQueue;
 }
 
 //----------------------------------------------------------------------
@@ -266,7 +271,7 @@ AddrSpace::readIn(int newPage){
         printf("Unable to open swap file %s\n",swapFileName);
         return;
     }
-    swapFile->ReadAt(&(machine->mainMemory[pageTable[newPage].physicalPage]),PageSize,newPage*PageSize);
+    swapFile->ReadAt(&(machine->mainMemory[pageTable[newPage].physicalPage*PageSize]),PageSize,newPage*PageSize);
     delete swapFile;
     printf("virtual page:%d has been read into mem\n",newPage);
 }
@@ -274,14 +279,14 @@ AddrSpace::readIn(int newPage){
 void
 AddrSpace::writeOut(int oldPage){
     printf("trying to swap virtual page:%d into disk...\t",oldPage);
-    if(pageTable[oldPage].dirty){
+    if(pageTable[oldPage].dirty||!pageTable[oldPage].use){
         printf("Dirty! It will be written into disk\n");
         OpenFile *swapFile=fileSystem->Open(swapFileName);
         if(swapFile==NULL){
             printf("Unable to open swap file %s\n",swapFileName);
             return;
         }
-        swapFile->WriteAt(&(machine->mainMemory[pageTable[oldPage].physicalPage]),PageSize,oldPage*PageSize);
+        swapFile->WriteAt(&(machine->mainMemory[pageTable[oldPage].physicalPage*PageSize]),PageSize,oldPage*PageSize);
         stats->numPageWriteOuts++;
         delete swapFile;
     }else{
