@@ -368,18 +368,26 @@ Interrupt::DumpState()
     fflush(stdout);
 }
 
+//----------------------------------------------------------------------
+// InitProcess
+// 	Run the process, with init of its addrSpace
+//----------------------------------------------------------------------
 void 
 InitProcess(int spaceId){
-    ASSERT(currentThread->space->GetSpaceId()==spaceId);
-    currentThread->space->InitRegisters();
+    ASSERT(currentThread->space->GetSpaceId()==spaceId);    //ensure addrSpace is inited properly
+    currentThread->space->InitRegisters();  
     currentThread->space->RestoreState();
     machine->Run();//invoke
     ASSERT(false);
 }
 
+//----------------------------------------------------------------------
+// Interrupt::Exec
+// 	SysCall Exec(), fork another process in different addrSpace
+//----------------------------------------------------------------------
 void 
 Interrupt::Exec(){
-    int fileAddr=machine->ReadRegister(4);
+    int fileAddr=machine->ReadRegister(4);  //the 4th reg stores the param
     char filename[50];
     //read in the filename from memory
     int i=0;
@@ -400,11 +408,16 @@ Interrupt::Exec(){
     thread->space=space;//user thread map to kernal thread
 
     thread->Fork(InitProcess,space->GetSpaceId());
-    machine->WriteRegister(2,space->GetSpaceId());//return spaceid to reg2
+    machine->WriteRegister(2,space->GetSpaceId());//return spaceId to reg2
 
     currentThread->Yield();//release cpu to next thread
 }
 
+//----------------------------------------------------------------------
+// Interrupt::PageFault
+// 	PageFault exception handler.
+//  Swapping the pages in pageTable with particular algorithm
+//----------------------------------------------------------------------
 void
 Interrupt::PageFault(int badVAddr){
     int newPage=badVAddr/PageSize;

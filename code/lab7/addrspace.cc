@@ -66,7 +66,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     unsigned int i, size;
     pageQueue=new List();
 
-    //allocate spaceId
+//allocate spaceId
     ASSERT(spaceIdMap->NumClear()>0);
     spaceId=spaceIdMap->Find();
     sprintf(swapFileName,"SWAP%d",spaceId);
@@ -84,7 +84,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     numPages = divRoundUp(size, PageSize);
     size=numPages*PageSize;
 
-    //create file
+//create swap file
     fileSystem->Remove(swapFileName);
     fileSystem->Create(swapFileName,size);
 
@@ -95,7 +95,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+	pageTable[i].virtualPage = i;	
 	pageTable[i].physicalPage = -1;
 	pageTable[i].valid = FALSE;
 	pageTable[i].use = FALSE;
@@ -107,7 +107,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
 
 
-// then, copy in the code and data segments into memory
+// then, copy in the code and data segments into swap file
     OpenFile *swapFile=fileSystem->Open(swapFileName);
     if(swapFile==NULL){
         printf("Unable to open swap file %s\n",swapFileName);
@@ -118,14 +118,12 @@ AddrSpace::AddrSpace(OpenFile *executable)
         char tmpBuff[seg.size];
         executable->ReadAt(tmpBuff,seg.size,seg.inFileAddr);
         swapFile->WriteAt(tmpBuff,seg.size,seg.virtualAddr);
-        printf("vSpace: code start at:%d length:%d\n",seg.virtualAddr,seg.size);
     }
     if(noffH.initData.size>0){
         Segment seg=noffH.initData;
         char tmpBuff[seg.size];
         executable->ReadAt(tmpBuff,seg.size,seg.inFileAddr);
         swapFile->WriteAt(tmpBuff,seg.size,seg.virtualAddr);
-        printf("vSpace: initData start at:%d length:%d\n",seg.virtualAddr,seg.size);
     }
     delete swapFile;
 
@@ -220,13 +218,19 @@ AddrSpace::Print(){
     printf("========================================================================================\n");
 }
 
-
+//----------------------------------------------------------------------
+// AddrSpace::GetSpaceId
+// 	returns current spaceId for Exec() SysCall to use
+//----------------------------------------------------------------------
 int
 AddrSpace::GetSpaceId(){
     return spaceId;
 }
 
-
+//----------------------------------------------------------------------
+// AddrSpace::readIn
+// 	for active vPage, read its content from disk to its physPage
+//----------------------------------------------------------------------
 void 
 AddrSpace::readIn(int newPage){
     OpenFile *swapFile=fileSystem->Open(swapFileName);
@@ -236,12 +240,17 @@ AddrSpace::readIn(int newPage){
     }
     swapFile->ReadAt(&(machine->mainMemory[pageTable[newPage].physicalPage*PageSize]),PageSize,newPage*PageSize);
     delete swapFile;
-    printf("virtual page:%d has been read into mem\n",newPage);
+    printf("vPage:%d has been read into mem\n",newPage);
 }
 
+//----------------------------------------------------------------------
+// AddrSpace::writeOut
+// 	for vPage not active no more (replaced by the vPage algorithm),
+//  write its content from its physPage to disk
+//----------------------------------------------------------------------
 void
 AddrSpace::writeOut(int oldPage){
-    printf("trying to swap virtual page:%d into disk...\t",oldPage);
+    printf("swapping out vPage:%d ...\t",oldPage);
     if(pageTable[oldPage].dirty||!pageTable[oldPage].use){
         printf("Dirty! It will be written into disk\n");
         OpenFile *swapFile=fileSystem->Open(swapFileName);
@@ -257,28 +266,34 @@ AddrSpace::writeOut(int oldPage){
     }
 }
 
+//----------------------------------------------------------------------
+// AddrSpace::FIFO
+// 	An implement for pure demand paging,
+//  called by PageFaultException, allocating a physPage for the new page.
+//  Queue implementation: existing class List
+//----------------------------------------------------------------------
+
 void
 AddrSpace::FIFO(int newPage){
-    printf("start to swap, current pageQueue size:%d\n",pageQueue->GetSize());
     pageQueue->Append((void*)newPage);
     int oldPage=-1;
    
     if(pageQueue->GetSize()>NumUserProcessFrame)
         oldPage=(int)pageQueue->Remove();
     printf("page swapping...\n");
-    if(oldPage!=-1)printf("\tout:vNum: %d, physPage:%d\n",oldPage,pageTable[oldPage].physicalPage);
     printf("\tin:vNum: %d\n",newPage);
 
     if(oldPage!=-1){//need to swap out an old page
+        printf("\tout:vNum: %d, physPage:%d\n",oldPage,pageTable[oldPage].physicalPage);
         writeOut(oldPage);
-        pageTable[oldPage].valid=false;
+        pageTable[oldPage].valid=FALSE;
         pageTable[newPage].physicalPage=pageTable[oldPage].physicalPage;   
     }
     else pageTable[newPage].physicalPage=freeMap->Find();//limit not reached
 
-    pageTable[newPage].valid=true;
-    pageTable[newPage].dirty=false;
-    pageTable[newPage].readOnly=false;
+    pageTable[newPage].valid=TRUE;
+    pageTable[newPage].dirty=FALSE;
+    pageTable[newPage].readOnly=FALSE;
     
     readIn(newPage);
     Print();

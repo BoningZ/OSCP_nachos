@@ -42,14 +42,12 @@ class AddrSpace {
   
 
   private:
-    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
+    TranslationEntry *pageTable;	//virtual page table
     unsigned int numPages;		// Number of pages in the virtual 
-					// address space
-    int spaceId;
-    static BitMap *freeMap,*spaceIdMap; 
-    char swapFileName[20];
-    List *pageQueue;
+    int spaceId;  // address space
+    static BitMap *freeMap,*spaceIdMap; //tool map to allocate
+    char swapFileName[20];  //format:"SWAP{spaceId}", it won't be too large
+    List *pageQueue;  //queue for the FIFO algorithm
 };
 
 #endif // ADDRSPACE_H
