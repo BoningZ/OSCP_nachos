@@ -370,10 +370,7 @@ Interrupt::DumpState()
 
 void 
 InitProcess(int spaceId){
-    ASSERT(currentThread->space->GetSpaceId()==spaceId);
-    currentThread->space->InitRegisters();
-    currentThread->space->RestoreState();
-    machine->Run();//invoke
+    machine->Run();//jump to it
     ASSERT(false);
 }
 
@@ -391,14 +388,15 @@ Interrupt::Exec(){
         printf("Unable to open file %s\n",filename);
         return;
     }
-
-    printf("Exec(%s):\n",filename);
     AddrSpace *space=new AddrSpace(executable);//allocate new addrspace
     delete executable;//close file
 
-    Thread *thread=new Thread(filename);//new kernal thread
-    thread->space=space;//user thread map to kernal thread
+    Thread *thread=new Thread(filename);//new kernel thread
+    thread->space=space;//user thread map to kernel thread
+    thread->space->InitRegisters();
+    thread->space->RestoreState();
 
+    printf("Exec(%s):\n",filename);
     thread->Fork(InitProcess,space->GetSpaceId());
     machine->WriteRegister(2,space->GetSpaceId());//return spaceid to reg2
 

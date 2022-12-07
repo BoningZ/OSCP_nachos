@@ -93,32 +93,46 @@ AddrSpace::AddrSpace(OpenFile *executable)
     pageTable = new TranslationEntry[numPages];
     ASSERT(freeMap->NumClear()>=numPages);//ensure to have enough physical pages
     for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = freeMap->Find();
+	pageTable[i].virtualPage = i;
+	pageTable[i].physicalPage = freeMap->Find();//lab6: could be different from vPage
 	pageTable[i].valid = TRUE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 					// a separate page, we could set its 
 					// pages to be read-only
+    bzero(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]),PageSize);
     }
     
-// zero out the entire address space, to zero the unitialized data segment 
-// and the stack segment
-    bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
-        int pagePos=pageTable[noffH.code.virtualAddr/PageSize].physicalPage*PageSize;
-        int offset=noffH.code.virtualAddr%PageSize;
-        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n",pagePos+offset, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[pagePos+offset]),noffH.code.size, noffH.code.inFileAddr);
+        Segment seg=noffH.code;
+        int startPos=seg.virtualAddr;
+        int endPos=startPos+seg.size;
+        int firstVPage=startPos/PageSize,lastVPage=divRoundUp(endPos,PageSize);
+        int curAddr=seg.inFileAddr;//read from this addr of file
+        for(int vPage=firstVPage;vPage<=lastVPage;vPage++){
+            int pagePos=pageTable[vPage].physicalPage*PageSize;//physical pos
+            if(vPage==firstVPage)pagePos+=startPos%PageSize;
+            int curSize=(vPage==lastVPage?(endPos%PageSize):PageSize)-(vPage==firstVPage?(startPos%PageSize):0);//size
+            executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
+            curAddr+=curSize;
+        }
     }
     if (noffH.initData.size > 0) {
-        int pagePos=pageTable[noffH.initData.virtualAddr/PageSize].physicalPage*PageSize;
-        int offset=noffH.initData.virtualAddr%PageSize;
-        DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", pagePos+offset, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[pagePos+offset]),noffH.initData.size, noffH.initData.inFileAddr);
+        Segment seg=noffH.initData;
+        int startPos=seg.virtualAddr;
+        int endPos=startPos+seg.size;
+        int firstVPage=startPos/PageSize,lastVPage=divRoundUp(endPos,PageSize);
+        int curAddr=seg.inFileAddr;//read from this addr of file
+        for(int vPage=firstVPage;vPage<=lastVPage;vPage++){
+            int pagePos=pageTable[vPage].physicalPage*PageSize;//physical pos
+            if(vPage==firstVPage)pagePos+=startPos%PageSize;
+            int curSize=(vPage==lastVPage?(endPos%PageSize):PageSize)-(vPage==firstVPage?(startPos%PageSize):0);//size
+            executable->ReadAt(&machine->mainMemory[pagePos],curSize,curAddr);
+            curAddr+=curSize;
+        }
     }
 
     Print();
