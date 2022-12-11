@@ -251,7 +251,7 @@ AddrSpace::readIn(int newPage){
 void
 AddrSpace::writeOut(int oldPage){
     printf("swapping out vPage:%d ...\t",oldPage);
-    if(pageTable[oldPage].dirty||!pageTable[oldPage].use){
+    if(pageTable[oldPage].dirty){
         printf("Dirty! It will be written into disk\n");
         OpenFile *swapFile=fileSystem->Open(swapFileName);
         if(swapFile==NULL){
