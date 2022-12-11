@@ -35,7 +35,7 @@ FileHeader::FileHeader(){
 }
 
 int
-FileHeader::numSectors(){
+FileHeader::numSectors(){//字节数算扇区数 取上整
     return ceil((double)numBytes/(double)SectorSize);
 }
 
@@ -51,19 +51,19 @@ FileHeader::GetModifiedTime(){
 
 
 bool
-FileHeader::Extend(int newNumBytes){
+FileHeader::Extend(int newNumBytes){//新增扩展方法
     if(newNumBytes<numBytes)return false;//wrong param
-    if(newNumBytes==numBytes)return true;//no need to change
-    int newNumSectors=ceil((double)newNumBytes/(double)SectorSize);
+    if(newNumBytes==numBytes)return true;//无需扩展
+    int newNumSectors=ceil((double)newNumBytes/(double)SectorSize);//ceil函数：取上整
     if(newNumSectors==numSectors()){//same num of sectors
         numBytes=newNumBytes;
         return true;
     }
     int deltaSectors=newNumSectors-numSectors();
     OpenFile *openFile=new OpenFile(0);
-    BitMap *bitMap=new BitMap(NumSectors);
+    BitMap *bitMap=new BitMap(NumSectors);//NumSectors:常数 磁盘上的所有扇区数量
     bitMap->FetchFrom(openFile);
-    //disk is full or file is too big
+    //剩余扇区数量不足以满足文件的存储
     if(newNumSectors>NumDirect||deltaSectors>bitMap->NumClear()){
         printf("disk is full/ file is too big\n");
         printf("old size:%dB--new size:%dB\n",numBytes,newNumBytes);
@@ -73,7 +73,9 @@ FileHeader::Extend(int newNumBytes){
     }
     //allocate
     for(int i=numSectors();i<newNumSectors;i++)dataSectors[i]=bitMap->Find();
-    bitMap->WriteBack(openFile);
+    //dataSectors[i]该文件第i个扇区的扇区号
+    //bitMap->Find()  找到一个可用扇区
+    bitMap->WriteBack(openFile);//更新DISK的位图
     numBytes=newNumBytes;
     return true;
 }
@@ -185,7 +187,7 @@ FileHeader::Print()
     printf("FileHeader contents.\nFile size: %d.\nFile blocks:", numBytes);
     for (i = 0; i < numSectors(); i++)printf("%d ", dataSectors[i]);
 
-    if(modifiedTime){//only normal file can have modified time
+    if(modifiedTime){//仅普通文件显示最后修改时间系统文件的最后修改时间设置为0（位图、目录）
         char s[100];
         time_t tmpTime=(time_t)modifiedTime;
         strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &*localtime(&tmpTime));  

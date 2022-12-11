@@ -351,23 +351,25 @@ FileSystem::Print()
 //    bytes used by normal files(including internal fragments)
 //    bytes used by internal fragments(caused by normal files)
 //----------------------------------------------------------------------
+//新增统计磁盘信息的方法
 void 
-FileSystem::PrintInfo(){
+FileSystem::PrintInfo(){  
     BitMap *freeMap=new BitMap(NumSectors);
     freeMap->FetchFrom(freeMapFile);
     Directory *directory = new Directory(NumDirEntries);
+    //NumDirEntries：目录的最大文件数
     directory->FetchFrom(directoryFile);
 
-    //total size
+    //总体大小
     int totalSize=NumSectors*SectorSize;
     printf("Total size: %d Sectors, %d Bytes\n",NumSectors,totalSize);
 
-    //used or free size
+    //已使用空间大小、空闲空间大小
     int clearSectors=freeMap->NumClear();
     printf("Used size: %d Sectors, %d Bytes\n",NumSectors-clearSectors,totalSize-clearSectors*SectorSize);
     printf("Free size: %d Sectors, %d Bytes\n",clearSectors,clearSectors*SectorSize);
 
-    //num and size used by normal files
+    //普通文件数目、全部普通文件的总字节数、全部普通文件占用的空间大小、总内碎片字节数
     int idealBytes=directory->BytesUsed(false);
     int normalSectors=directory->SectorStat(false);
     int allBytes=normalSectors*SectorSize;

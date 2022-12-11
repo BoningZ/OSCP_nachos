@@ -147,7 +147,7 @@ main(int argc, char **argv)
             fileSystem->Print();
 	} else if (!strcmp(*argv, "-t")) {	// performance test
             PerformanceTest();
-	} else if (!strcmp(*argv, "-DI")){	// print disk info 
+	} else if (!strcmp(*argv, "-DI")){	// 新增DI指令 打印磁盘信息  print disk info 
 			fileSystem->PrintInfo();
 	}
 #endif // FILESYS

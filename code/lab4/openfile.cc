@@ -142,18 +142,18 @@ OpenFile::ReadAt(char *into, int numBytes, int position)
 }
 
 int
-OpenFile::WriteAt(char *from, int numBytes, int position)
+OpenFile::WriteAt(char *from, int numBytes, int position)//修改为可扩展大小
 {
     int fileLength = hdr->FileLength();
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char *buf;
 
-    //if ((numBytes <= 0) || (position >= fileLength))  // For original Nachos file system
-    if ((numBytes <= 0) || (position > fileLength))  // For lab4 ...now ok to write from EOF
+    //if ((numBytes <= 0) || (position >= fileLength))  // 原先的
+    if ((numBytes <= 0) || (position > fileLength))  //修改：可以从文件结尾处（EOF）开始写
 	return 0;				// check request
     if ((position + numBytes) > fileLength)
-        if(!hdr->Extend(position+numBytes))return 0;//possible to fail
+        if(!hdr->Extend(position+numBytes))return 0;//扩展没有成功
 
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
@@ -197,7 +197,7 @@ OpenFile::Length()
 }
 
 void
-OpenFile::WriteBack(){
+OpenFile::WriteBack(){//新增写回文件头方法
     hdr->WriteBack(sector);
 }
 

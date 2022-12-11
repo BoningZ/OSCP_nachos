@@ -1,4 +1,4 @@
-// synchdisk.cc 
+// synchdisk.cc 同步硬盘的 先不管
 //	Routines to synchronously access the disk.  The physical disk 
 //	is an asynchronous device (disk requests return immediately, and
 //	an interrupt happens later on).  This is a layer on top of

@@ -55,7 +55,7 @@ FileHeader::NumBytes(bool includingFrag){
     return includingFrag?numSectors()*SectorSize:numBytes;
 }
 
-
+//lab4基础上加上二级索引的逻辑
 bool
 FileHeader::Extend(int newNumBytes){
     if(newNumBytes<numBytes)return false;//wrong param
@@ -79,12 +79,13 @@ FileHeader::Extend(int newNumBytes){
     }
     //allocate
     for(int i=numSectors();i<newNumSectors&&i<LastIndex;i++)dataSectors[i]=bitMap->Find();
-    if(newNumSectors>=NumDirect){//need level 2
+    if(newNumSectors>=NumDirect){//修改后的文件大小需要扇区数量多于一级索引表的大小：需要扩展二级索引
         int dataSectors2[NumDirect2],start=0;
-        if(dataSectors[LastIndex]!=-1){//level 2 already existed, read from disk 
+        if(dataSectors[LastIndex]!=-1){//已经扩展了二级索引
+            //从硬盘将A位置的内容读入B地址（存的是扇区号）
             synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
             start=numSectors()-NumDirect+1;
-        }else dataSectors[LastIndex]=bitMap->Find(); //no existing level 2, create at the last index   
+        }else dataSectors[LastIndex]=bitMap->Find(); //未扩展二级索引  
         //allocate for level 2
         for(int i=start;i<=newNumSectors-NumDirect;i++)dataSectors2[i]=bitMap->Find();
         synchDisk->WriteSector(dataSectors[LastIndex],(char*)dataSectors2);
@@ -105,6 +106,7 @@ FileHeader::Extend(int newNumBytes){
 //	"fileSize" is the bit map of free disk sectors
 //----------------------------------------------------------------------
 
+//分配空间：新增二级索引的逻辑
 bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
@@ -115,7 +117,7 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
     for (int i = 0; i < numSectors()&&i<LastIndex; i++)
 	    dataSectors[i] = freeMap->Find();
     if(numSectors()<LastIndex)dataSectors[LastIndex]=-1;//no need level 2
-    else{//need level 2
+    else{//需要二级索引
         dataSectors[LastIndex]=freeMap->Find();
         int dataSectors2[NumDirect2];
         for(int i=0;i<=numSectors()-NumDirect;i++)
@@ -132,6 +134,7 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 //	"freeMap" is the bit map of free disk sectors
 //----------------------------------------------------------------------
 
+//释放空间：新增二级索引的逻辑
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
@@ -139,7 +142,7 @@ FileHeader::Deallocate(BitMap *freeMap)
 	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 	freeMap->Clear((int) dataSectors[i]);
     }
-    if(dataSectors[LastIndex]!=-1){//need to clear level 2
+    if(dataSectors[LastIndex]!=-1){//需要释放二级索引的空间
         int dataSectors2[NumDirect2];
         synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
         freeMap->Clear((int)dataSectors[LastIndex]);
@@ -183,13 +186,14 @@ FileHeader::WriteBack(int sector)
 //
 //	"offset" is the location within the file of the byte in question
 //----------------------------------------------------------------------
-
+//访问时需调用 offset：文件的第几个字节 返回文件对应的块号
+//offset：偏移量
 int
 FileHeader::ByteToSector(int offset)
 {
-    if(offset/SectorSize<LastIndex)//not in level 2
+    if(offset/SectorSize<LastIndex)//不在二级索引中
         return(dataSectors[offset / SectorSize]);
-    else{//in level 2
+    else{//在二级索引中
         int dataSectors2[NumDirect2];
         synchDisk->ReadSector(dataSectors[LastIndex],(char*)dataSectors2);
         return dataSectors2[offset/SectorSize-LastIndex];
@@ -212,7 +216,7 @@ FileHeader::FileLength()
 // 	Print the contents of the file header, and the contents of all
 //	the data blocks pointed to by the file header.
 //----------------------------------------------------------------------
-
+//打印单个文件信息 新增关于二级索引的逻辑
 void
 FileHeader::Print()
 {

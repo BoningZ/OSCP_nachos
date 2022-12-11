@@ -66,7 +66,7 @@ class FileHeader {
 
   private:
     int numBytes;			// Number of bytes in the file
-    int modifiedTime;			// Number of data sectors in the file
+    int modifiedTime;			// Number of data sectors 换为最后修改时间
     int dataSectors[NumDirect];		// Disk sector numbers for each data 
 					// block in the file
 };

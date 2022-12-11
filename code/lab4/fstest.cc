@@ -1,4 +1,5 @@
 // fstest.cc 
+// 命令行的方法调用  加上了最后修改时间写回文件头的逻辑
 //	Simple test routines for the file system.  
 //
 //	We implement:
@@ -11,6 +12,7 @@
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
+
 
 #include "copyright.h"
 
@@ -72,7 +74,7 @@ Copy(char *from, char *to)
 // new file time shoule be the same as original
     struct stat buf;
     stat(from,&buf);
-    openFile->SetModifiedTime((int)buf.st_mtime);
+    openFile->SetModifiedTime((int)buf.st_mtime);//设置最后修改时间
 
 // Close the UNIX and the Nachos files
     delete openFile;
@@ -119,7 +121,8 @@ Append(char *from, char *to, int half)
 	printf("Append: nothing to append from file %s\n", from);
 	return;
     }
-	 
+
+	 //文件不存在 新创建该文件，最后修改时间设置为源文件的最后修改时间
     if ( (openFile = fileSystem->Open(to)) == NULL)
     {
 	    // file "to" does not exits, then create one
@@ -158,7 +161,7 @@ Append(char *from, char *to, int half)
     }
     delete [] buffer;
 
-//  Write the inode back to the disk, because we have changed it
+//  Write the inode back to the disk, because we have changed it修改文件头
     openFile->WriteBack();
 //  printf("inodes have been written back\n");
     
@@ -220,7 +223,7 @@ NAppend(char *from, char *to)
 	        return;
 	    }
 	    openFileTo = fileSystem->Open(to);
-        //new file, time should be as the original
+        //新文件的修改时间设置为与源文件相同
         openFileTo->SetModifiedTime(openFileFrom->GetModifiedTime());
     }else openFileTo->SetModifiedTime((int)time(NULL));
 
@@ -245,7 +248,7 @@ NAppend(char *from, char *to)
     }
     delete [] buffer;
 
-//  Write the inode back to the disk, because we have changed it
+//  Write the inode back to the disk, because we have changed it写回文件头
     openFileTo->WriteBack();
 //  printf("inodes have been written back\n");
     

@@ -1,4 +1,4 @@
-// directory.cc 
+// directory.cc  DISK的目录
 //	Routines to manage a directory of file names.
 //
 //	The directory is a table of fixed length entries; each

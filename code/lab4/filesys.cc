@@ -77,7 +77,7 @@
 //	"format" -- should we initialize the disk?
 //----------------------------------------------------------------------
 
-FileSystem::FileSystem(bool format)
+FileSystem::FileSystem(bool format)//磁盘初始化（未改）
 { 
     DEBUG('f', "Initializing the file system.\n");
     if (format) {
